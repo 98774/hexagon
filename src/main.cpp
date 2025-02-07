@@ -34,7 +34,7 @@ float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 // Camera
-Camera cam = Camera();
+Camera cam = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -94,21 +94,26 @@ int main() {
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
+  float tri[] = {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
+                 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f};
   unsigned int VAO, VBO;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
 
   glBindVertexArray(VAO);
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * player.getNumVertices(),
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * player.getNumVertices(),
                (void *)player.getVertices(), GL_STATIC_DRAW);
 
-  // Position (location = 0)
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
   glEnableVertexAttribArray(0);
 
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   glBindVertexArray(0);
+  // Define perspective
+  glm::mat4 projection = glm::mat4(1.0f);
+  projection = glm::perspective(
+      glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
   while (!glfwWindowShouldClose(window)) {
     // input
@@ -125,9 +130,6 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     background.use();
 
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 9);
-
     // don't forget to use the corresponding shader program first (to set the
 
     //  lightingShader.use();
@@ -139,26 +141,22 @@ int main() {
     //  // view/projection transformations
     background.setVec3("playerColor", glm::vec3(1.0f, 0.5f, 0.31f));
     // create transformations
-    glm::mat4 model = glm::mat4(
-        1.0f); // make sure to initialize matrix to identity matrix first
+    glm::mat4 model =
+        glm::mat4(1.0f); // make sure to initialize matrix to identity matrix
+                         // first glm::mat4 view = cam.GetViewMatrix();
+
     glm::mat4 view = glm::mat4(1.0f);
-    glm::mat4 projection = glm::mat4(1.0f);
-    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f),
-                        glm::vec3(0.5f, 1.0f, 0.0f));
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    projection =
-        glm::perspective(glm::radians(45.0f),
-                         (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     // retrieve the matrix uniform locations
 
     background.setMat4("projection", projection);
     background.setMat4("view", view);
-
-    // world transformation
     background.setMat4("model", model);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLES, 0, 9);
 
-    glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    //    glBindVertexArray(cubeVAO);
+    //    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
     // moved etc.)
@@ -247,6 +245,5 @@ GLFWwindow *initializeGLFW() {
     return nullptr;
   }
 
-  std::cout << "window" << window << std::endl;
   return window;
 }
