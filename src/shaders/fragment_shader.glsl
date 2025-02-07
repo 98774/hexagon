@@ -10,6 +10,6 @@ uniform vec3 playerColor;
 
 void main()
 {
-    FragColor = vec4(FragPos, 1.0f);
+    FragColor = vec4(1.0,1.0, 1.0, 1.0f);
   //  FragColor = mix(texture(texture1, TexCoord), texture(texture2, vec2(TexCoord.x, TexCoord.y)), mixValue);
 }

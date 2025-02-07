@@ -43,30 +43,6 @@ bool firstMouse = true;
 glm::vec3 backgroundColor = glm::vec3(1.0f, 0.5f, 0.31f);
 Player player = Player(0.0f, 0.5f);
 
-float vertices[] = {
-    -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
-    0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f, 1.0f, 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 1.0f, -0.5f, -0.5f, 0.5f,  0.0f, 0.0f,
-
-    -0.5f, 0.5f,  0.5f,  1.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  0.5f,  1.0f, 0.0f,
-
-    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f,
-    0.5f,  -0.5f, 0.5f,  0.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 1.0f,
-    0.5f,  -0.5f, 0.5f,  1.0f, 0.0f, 0.5f,  -0.5f, 0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f, 0.5f,  0.0f, 0.0f, -0.5f, -0.5f, -0.5f, 0.0f, 1.0f,
-
-    -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,
-    0.5f,  0.5f,  0.5f,  1.0f, 0.0f, 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, 0.5f,  0.5f,  0.0f, 0.0f, -0.5f, 0.5f,  -0.5f, 0.0f, 1.0f};
 int main() {
   GLFWwindow *window = initializeGLFW();
 
@@ -82,20 +58,7 @@ int main() {
   // This line allows movement off the xz plane
   cam.Fpv = false;
   // VertexBuffer playerBuffer(player.getVertices(), player.getNumVertices());
-  unsigned int cubeVAO, cubeVBO;
-  glGenVertexArrays(1, &cubeVAO);
-  glGenBuffers(1, &cubeVBO);
 
-  glBindVertexArray(cubeVAO);
-  glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-  // Position (location = 0)
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
-  glEnableVertexAttribArray(0);
-
-  float tri[] = {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f,
-                 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f};
   unsigned int VAO, VBO;
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);
@@ -138,25 +101,20 @@ int main() {
     //  //                          glm::cos(glfwGetTime() * 2.0f), 0.0f);
     //  lightingShader.setVec3("lightPos", lightPos);
     //  lightingShader.setVec3("viewPos", cam.Position);
+
     //  // view/projection transformations
     background.setVec3("playerColor", glm::vec3(1.0f, 0.5f, 0.31f));
-    // create transformations
-    glm::mat4 model =
-        glm::mat4(1.0f); // make sure to initialize matrix to identity matrix
-                         // first glm::mat4 view = cam.GetViewMatrix();
+    //
 
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::mat4 view = cam.GetViewMatrix();
     // retrieve the matrix uniform locations
 
     background.setMat4("projection", projection);
     background.setMat4("view", view);
-    background.setMat4("model", model);
+    background.setMat4("model", player.getModelMatrix());
+
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 9);
-
-    //    glBindVertexArray(cubeVAO);
-    //    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
     // moved etc.)
@@ -192,7 +150,7 @@ void processInput(GLFWwindow *window) {
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
   if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) {
-    float newAngle = player.getAngle() + 0.05;
+    float newAngle = player.getAngle() - 0.05;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
 }
