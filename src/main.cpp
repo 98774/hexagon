@@ -70,8 +70,6 @@ float vertices[] = {
 int main() {
   GLFWwindow *window = initializeGLFW();
 
-  std::cout << "window" << window << std::endl;
-  std::cout << "window" << window << std::endl;
   // build and compile our shader program
   // ------------------------------------
   Shader walls("src/shaders/walls_vs.glsl", "src/shaders/walls_fs.glsl");
@@ -91,6 +89,10 @@ int main() {
   glBindVertexArray(cubeVAO);
   glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // Position (location = 0)
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
 
   unsigned int VAO, VBO;
   glGenVertexArrays(1, &VAO);
@@ -118,7 +120,7 @@ int main() {
 
     // render
     // ------
-    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     background.use();
@@ -136,15 +138,23 @@ int main() {
     //  lightingShader.setVec3("viewPos", cam.Position);
     //  // view/projection transformations
     background.setVec3("playerColor", glm::vec3(1.0f, 0.5f, 0.31f));
-    glm::mat4 projection =
-        glm::perspective(glm::radians(cam.Zoom),
+    // create transformations
+    glm::mat4 model = glm::mat4(
+        1.0f); // make sure to initialize matrix to identity matrix first
+    glm::mat4 view = glm::mat4(1.0f);
+    glm::mat4 projection = glm::mat4(1.0f);
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f),
+                        glm::vec3(0.5f, 1.0f, 0.0f));
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    projection =
+        glm::perspective(glm::radians(45.0f),
                          (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = cam.GetViewMatrix();
+    // retrieve the matrix uniform locations
+
     background.setMat4("projection", projection);
     background.setMat4("view", view);
 
     // world transformation
-    glm::mat4 model = glm::mat4(1.0f);
     background.setMat4("model", model);
 
     glBindVertexArray(cubeVAO);
