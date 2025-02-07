@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/hexagon.dir/src/glad.c.o CMakeFiles/hexagon.dir/src/main.cpp.o CMakeFiles/hexagon.dir/src/hexagon.cpp.o -o hexagon  /usr/lib/x86_64-linux-gnu/libOpenGL.so /usr/lib/x86_64-linux-gnu/libGLX.so /usr/lib/x86_64-linux-gnu/libGLU.so glfw/src/libglfw3.a /usr/lib/x86_64-linux-gnu/librt.a -lm -ldl
