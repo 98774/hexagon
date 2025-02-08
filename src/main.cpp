@@ -1,7 +1,6 @@
 #include "camera.hpp"
 #include "player.hpp"
 #include "shader.hpp"
-#include "vertex.hpp"
 #define BEFORE_GLFW
 #include "GLFW/glfw3.h"
 #include <cmath>
@@ -41,7 +40,7 @@ bool firstMouse = true;
 
 // Initialize colors
 glm::vec3 backgroundColor = glm::vec3(1.0f, 0.5f, 0.31f);
-Player player = Player(0.0f, 0.5f);
+Player player = Player(0.0f, PLAYER_RADIUS);
 
 int main() {
   GLFWwindow *window = initializeGLFW();
@@ -58,21 +57,6 @@ int main() {
   // This line allows movement off the xz plane
   cam.Fpv = false;
   // VertexBuffer playerBuffer(player.getVertices(), player.getNumVertices());
-
-  unsigned int VAO, VBO;
-  glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &VBO);
-
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * player.getNumVertices(),
-               (void *)player.getVertices(), GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
-  glEnableVertexAttribArray(0);
-
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
   // Define perspective
   glm::mat4 projection = glm::mat4(1.0f);
   projection = glm::perspective(
@@ -112,9 +96,11 @@ int main() {
     background.setMat4("projection", projection);
     background.setMat4("view", view);
     background.setMat4("model", player.getModelMatrix());
+    // Update deltaTime
 
-    glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 9);
+    player.render();
+    deltaTime = glfwGetTime() - lastFrame;
+    lastFrame = glfwGetTime();
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
     // moved etc.)
@@ -146,12 +132,12 @@ void processInput(GLFWwindow *window) {
     glfwSetWindowShouldClose(window, 1);
   }
   if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) {
-    float newAngle = player.getAngle() + 0.05;
+    float newAngle = player.getAngle() + 0.15;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
   if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) {
-    float newAngle = player.getAngle() - 0.05;
-    player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
+    float newAngle = player.getAngle() - 0.15;
+    player.setAngle(newAngle < 0 ? 2 * M_PI : newAngle);
   }
 }
 
