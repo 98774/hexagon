@@ -1,19 +1,15 @@
 #version 330 core
-out vec3 pos;
+out vec4 FragColor;
 
-in vec3 aPos;
+in vec3 FragPos;
 //in vec3 ourColor;
 //in vec2 TexCoord;
 
-//uniform sampler2D texture1;
+uniform vec3 playerColor;
 //uniform sampler2D texture2;
-uniform mat4 view;
-uniform mat4 projection;
-uniform mat4 model;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
-  pos = aPos;
+    FragColor = vec4(0.5+ FragPos.x,0.5+FragPos.y, 0.1, 1.0f);
   //  FragColor = mix(texture(texture1, TexCoord), texture(texture2, vec2(TexCoord.x, TexCoord.y)), mixValue);
 }

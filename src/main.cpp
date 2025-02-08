@@ -1,6 +1,7 @@
 #include "camera.hpp"
 #include "player.hpp"
 #include "shader.hpp"
+#include "walls.hpp"
 #define BEFORE_GLFW
 #include "GLFW/glfw3.h"
 #include <cmath>
@@ -47,11 +48,15 @@ int main() {
 
   // build and compile our shader program
   // ------------------------------------
-  Shader walls("src/shaders/walls_vs.glsl", "src/shaders/walls_fs.glsl");
+  Shader walls_shader("src/shaders/walls_vs.glsl", "src/shaders/walls_fs.glsl");
 
-  Shader background(
+  Shader background_shader(
       "src/shaders/vertex_shader.glsl",
       "src/shaders/fragment_shader.glsl"); // you can name your shader
+  Shader player_shader(
+      "src/shaders/player_vs.glsl",
+      "src/shaders/player_fs.glsl"); // you can name your shader
+
   glEnable(GL_DEPTH_TEST);
 
   // This line allows movement off the xz plane
@@ -62,6 +67,7 @@ int main() {
   projection = glm::perspective(
       glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
+  Walls wallMatrix = Walls();
   while (!glfwWindowShouldClose(window)) {
     // input
     // -----
@@ -75,7 +81,6 @@ int main() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    background.use();
 
     // don't forget to use the corresponding shader program first (to set the
 
@@ -87,18 +92,19 @@ int main() {
     //  lightingShader.setVec3("viewPos", cam.Position);
 
     //  // view/projection transformations
-    background.setVec3("playerColor", glm::vec3(1.0f, 0.5f, 0.31f));
     //
 
     glm::mat4 view = cam.GetViewMatrix();
     // retrieve the matrix uniform locations
 
-    background.setMat4("projection", projection);
-    background.setMat4("view", view);
-    background.setMat4("model", player.getModelMatrix());
+    //    background.setMat4("model", player.getModelMatrix());
     // Update deltaTime
 
-    player.render();
+    player.render(player_shader, projection, view);
+    //    playerBuffer.render(player, projection, view);
+    //    wallMatrix.update();
+    //    wallMatrix.render(walls, projection, view);
+
     deltaTime = glfwGetTime() - lastFrame;
     lastFrame = glfwGetTime();
 
