@@ -5,27 +5,32 @@
 #include <vector>
 
 #define WALL_SEGMENTS 6 // Number of walls per loop (hexagon)
-#define SPEED 0.01f     // Rate at which walls descend
-#define THICKNESS 0.2f  // Scaling factor for the trapezoid height
+#define SPEED 1.0f      // Rate at which walls descend
+#define THICKNESS 0.5f  // Scaling factor for the trapezoid height
+#define RADIUS 2.0f     // Initial radius of the walls
 
 struct Wall {
   float radius; // Distance from the center
+  bool visible;
 };
 
 class Walls {
 public:
   Walls() {
-    getWallVertices(6, 1.0f);
+    m_numSides = WALL_SEGMENTS;
+    getWallVertices();
     setupMesh();
   }
 
-  void update() {
+  void update(float deltaTime) {
     // Move walls inward
     for (auto &row : wallMatrix) {
       for (auto &wall : row) {
         if (wall.radius >
-            0.1f) { // Keep a minimum radius to prevent disappearing instantly
-          wall.radius -= SPEED;
+            0.05f) { // Keep a minimum radius to prevent disappearing instantly
+          wall.radius -= SPEED * deltaTime;
+        } else {
+          wall.visible = 0;
         }
       }
     }
@@ -37,14 +42,14 @@ public:
 
     for (size_t row = 0; row < wallMatrix.size(); ++row) {
       for (size_t i = 0; i < WALL_SEGMENTS; ++i) {
-        if (queueMatrix[row][i] == 1) { // If wall exists
+        if (wallMatrix[row][i].visible == 1) { // If wall exists
           Wall &wall = wallMatrix[row][i];
 
           glm::mat4 model = glm::mat4(1.0f);
-          model = glm::rotate(model, glm::radians(i * 60.0f),
+          model = glm::scale(model, glm::vec3(wall.radius, wall.radius, 1.0f));
+          model = glm::rotate(model, glm::radians(i * 360.0f / m_numSides),
                               glm::vec3(0.0f, 0.0f, -1.0f));
 
-          model = glm::scale(model, glm::vec3(wall.radius, wall.radius, 1.0f));
           //          std::cout << "model: " << model[0][0] << std::endl;
           shader.setMat4("model", model);
           shader.setMat4("mvp", projection * view * model);
@@ -56,41 +61,30 @@ public:
     glBindVertexArray(0);
   }
 
+  void setNumSides(int sides) {
+    m_numSides = sides;
+    getWallVertices();
+    setupMesh();
+  }
   void addWallRow(const std::vector<int> &newRow) {
     std::vector<Wall> newWallRow;
     for (int i = 0; i < WALL_SEGMENTS; ++i) {
       if (newRow[i] == 1) {
-        newWallRow.push_back(Wall{1.0f}); // Start walls at radius = 1.0
+        newWallRow.push_back(Wall{RADIUS, true});
       } else {
-        newWallRow.push_back(Wall{-1.0f}); // -1.0 means it won't render
+        newWallRow.push_back(Wall{RADIUS, false});
       }
     }
-    queueMatrix.push_back(newRow);
     wallMatrix.push_back(newWallRow);
-    std::cout << "Added wall row" << std::endl;
   }
 
 private:
-  GLuint VAO, VBO, EBO;
-  std::vector<std::vector<int>> queueMatrix; // Wall presence matrix
+  GLuint VAO, VBO;
   std::vector<std::vector<Wall>> wallMatrix; // Actual wall data
   float m_vertices[18];
+  int m_numSides;
 
   void setupMesh() {
-    //    float trapezoidVertices[] = {
-    //        // X, Y, Z
-    //        -0.5f,  0.5f,  0.0f, // Top-left
-    //        0.5f,   0.5f,  0.0f, // Top-right
-    //        -0.25f, -0.5f, 0.0f, // Bottom-left
-    //        0.25f,  -0.5f, 0.0f  // Bottom-right
-    //    };
-    //
-    //    unsigned int indices[] = {
-    //        0, 1, 2, // First triangle
-    //        1, 3, 2  // Second triangle
-    //    };
-
-    std::cout << "Setting up mesh" << std::endl;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
@@ -108,12 +102,12 @@ private:
     glBindVertexArray(0);
   }
 
-  void getWallVertices(int numSides, float radius) {
+  void getWallVertices() {
 
-    float angleStep = glm::radians(360.0f / numSides);
+    float angleStep = glm::radians(360.0f / m_numSides);
 
-    float innerRadius = radius;
-    float outerRadius = radius + THICKNESS;
+    float innerRadius = RADIUS;
+    float outerRadius = RADIUS + THICKNESS;
     // Compute vertex positions
     float x1_outer = outerRadius * cos(0);
     float y1_outer = outerRadius * sin(0);

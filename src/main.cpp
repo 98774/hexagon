@@ -1,10 +1,13 @@
+
 #include "camera.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #include "player.hpp"
 #include "shader.hpp"
 #include "walls.hpp"
+#include <sys/types.h>
 #define BEFORE_GLFW
 #include "GLFW/glfw3.h"
-#include <cmath>
 #include <cstdlib>
 #include <glad/glad.h>
 
@@ -12,15 +15,11 @@
 #include "stb_image.h"
 #include <iostream>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 GLFWwindow *initializeGLFW();
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void mouse_callback(GLFWwindow *window, double xpos, double ypos);
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+void processInput(GLFWwindow *window, float deltaTime);
 
 enum State { MENU, PLAYING, PAUSED, GAME_OVER, EXIT };
 int currentState = PLAYING;
@@ -41,7 +40,7 @@ bool firstMouse = true;
 
 // Initialize colors
 glm::vec3 backgroundColor = glm::vec3(1.0f, 0.5f, 0.31f);
-Player player = Player(0.0f, PLAYER_RADIUS);
+Player player = Player();
 
 int main() {
   GLFWwindow *window = initializeGLFW();
@@ -51,8 +50,8 @@ int main() {
   Shader walls_shader("src/shaders/walls_vs.glsl", "src/shaders/walls_fs.glsl");
 
   Shader background_shader(
-      "src/shaders/vertex_shader.glsl",
-      "src/shaders/fragment_shader.glsl"); // you can name your shader
+      "src/shaders/background_vs.glsl",
+      "src/shaders/background_vs.glsl"); // you can name your shader
   Shader player_shader(
       "src/shaders/player_vs.glsl",
       "src/shaders/player_fs.glsl"); // you can name your shader
@@ -66,44 +65,49 @@ int main() {
   glm::mat4 projection = glm::mat4(1.0f);
   projection = glm::perspective(
       glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+  glm::mat4 view = cam.GetViewMatrix();
 
   Walls wallMatrix = Walls();
-  wallMatrix.addWallRow({1, 1, 1, 1, 1, 1});
-  //  wallMatrix.addWallRow({0, 1, 0, 1, 0, 1});
-  // wallMatrix.addWallRow({1, 0, 1, 0, 1, 0});
+  wallMatrix.addWallRow({1, 0, 1, 0, 1, 0});
+  float wallCounter = 0;
+  int sides = 6;
+  float angleMod = 0;
   while (!glfwWindowShouldClose(window)) {
     // input
     // -----
-    processInput(window);
+    processInput(window, deltaTime);
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+    wallCounter += deltaTime;
+    if (wallCounter > 0.5) {
+      wallCounter = 0;
+
+      glm::uint8 vals = rand() % 64;
+      wallMatrix.addWallRow({
+          (vals & 0x1) ? 1 : 0, (vals & 0x2) ? 1 : 0, (vals & 0x4) ? 1 : 0,
+          (vals & 0x8) ? 1 : 0, (vals & 0x10) ? 1 : 0,
+          (vals & 0x20) ? 1 : 0 // Fixed incorrect mask from 0x2 to 0x20
+      });
+      //      sides = rand() % 6 + 3;
+      //      wallMatrix.setNumSides(sides);
+    }
 
     // render
     // ------
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.1 + glm::sin(glfwGetTime() * M_PI) / 4,
+                 0.1 + glm::sin(glfwGetTime() * M_PI) / 4,
+                 0.1 + glm::sin(glfwGetTime() * M_PI) / 4, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // don't forget to use the corresponding shader program first (to set the
 
-    //  lightingShader.use();
-    //  lightingShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-    //  //    lightPos += glm::vec3((float)glm::sin(glfwGetTime() * 2.0f),
-    //  //                          glm::cos(glfwGetTime() * 2.0f), 0.0f);
-    //  lightingShader.setVec3("lightPos", lightPos);
-    //  lightingShader.setVec3("viewPos", cam.Position);
-
-    //  // view/projection transformations
-    //
-
-    glm::mat4 view = cam.GetViewMatrix();
-    // retrieve the matrix uniform locations
-
-    // Update deltaTime
+    view = glm::rotate(view, (float)glm::radians(1.05), glm::vec3(0, 0, -1.0));
 
     player.render(player_shader, projection, view);
-    wallMatrix.update();
+
+    wallMatrix.update(deltaTime);
     wallMatrix.render(walls_shader, projection, view);
     //    playerBuffer.render(player, projection, view);
     //    wallMatrix.update();
@@ -136,17 +140,17 @@ int main() {
 // process all input: query GLFW whether relevant keys are pressed/released this
 // frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window) {
+void processInput(GLFWwindow *window, float deltaTime) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) ||
       glfwGetKey(window, GLFW_KEY_CAPS_LOCK)) {
     glfwSetWindowShouldClose(window, 1);
   }
   if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) {
-    float newAngle = player.getAngle() + 0.15;
+    float newAngle = player.getAngle() + deltaTime * M_PI * 500;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
   if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) {
-    float newAngle = player.getAngle() - 0.15;
+    float newAngle = player.getAngle() - deltaTime * M_PI * 500;
     player.setAngle(newAngle < 0 ? 2 * M_PI : newAngle);
   }
 }

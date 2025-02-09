@@ -10,7 +10,9 @@
 
 class Player {
 public:
-  Player(float angle, float radius) : m_angle(angle), m_radius(radius) {
+  Player() {
+    m_angle = 0.0f;
+    m_radius = PLAYER_RADIUS;
     m_VAO = 0;
     m_VBO = 0;
   }
