@@ -68,6 +68,9 @@ int main() {
       glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
   Walls wallMatrix = Walls();
+  wallMatrix.addWallRow({1, 1, 1, 1, 1, 1});
+  //  wallMatrix.addWallRow({0, 1, 0, 1, 0, 1});
+  // wallMatrix.addWallRow({1, 0, 1, 0, 1, 0});
   while (!glfwWindowShouldClose(window)) {
     // input
     // -----
@@ -97,10 +100,11 @@ int main() {
     glm::mat4 view = cam.GetViewMatrix();
     // retrieve the matrix uniform locations
 
-    //    background.setMat4("model", player.getModelMatrix());
     // Update deltaTime
 
     player.render(player_shader, projection, view);
+    wallMatrix.update();
+    wallMatrix.render(walls_shader, projection, view);
     //    playerBuffer.render(player, projection, view);
     //    wallMatrix.update();
     //    wallMatrix.render(walls, projection, view);
