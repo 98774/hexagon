@@ -4,10 +4,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 
-#define WALL_SEGMENTS 6 // Number of walls per loop (hexagon)
-#define SPEED 1.0f      // Rate at which walls descend
-#define THICKNESS 0.5f  // Scaling factor for the trapezoid height
-#define RADIUS 2.0f     // Initial radius of the walls
+#define NUM_WALL_ROWS 20
+#define WALL_SEGMENTS 6  // Number of walls per loop (hexagon)
+#define SPEED 1.0f       // Rate at which walls descend
+#define THICKNESS 0.1f   // Scaling factor for the trapezoid height
+#define RADIUS 3.0f      // Initial radius of the walls
+#define MIN_RADIUS 0.05f // The point at which the walls disappear
 
 struct Wall {
   float radius; // Distance from the center
@@ -18,119 +20,107 @@ class Walls {
 public:
   Walls() {
     m_numSides = WALL_SEGMENTS;
-    getWallVertices();
     setupMesh();
   }
 
   void update(float deltaTime) {
-    // Move walls inward
-    for (auto &row : wallMatrix) {
-      for (auto &wall : row) {
-        if (wall.radius >
-            0.05f) { // Keep a minimum radius to prevent disappearing instantly
+    vertices.clear();
+    indices.clear();
+
+    unsigned int vertexOffset = 0;
+    for (size_t row = 0; row < NUM_WALL_ROWS; ++row) {
+      for (size_t i = 0; i < m_numSides; ++i) {
+        Wall &wall = wallMatrix[row][i];
+        // std::cout << wall.visible << std::endl;
+        if (!wall.visible)
+          continue;
+
+        // Shrink walls inward
+        if (wall.radius > MIN_RADIUS) {
           wall.radius -= SPEED * deltaTime;
-        } else {
-          wall.visible = 0;
         }
+        if (wall.radius < MIN_RADIUS)
+          wall.visible = false;
+
+        // Define base vertical line and rotate
+        float innerRadius = wall.radius + THICKNESS;
+        float outerRadius = wall.radius;
+        float angle = glm::radians(i * 360.0f / m_numSides);
+        float deltaAngle = glm::radians(360.0f / m_numSides);
+        float cosA = glm::cos(angle), sinA = glm::sin(angle);
+        float cosB = glm::cos(angle + deltaAngle),
+              sinB = glm::sin(angle + deltaAngle);
+
+        glm::vec2 v1 = glm::vec2(cosA * innerRadius, sinA * innerRadius);
+        glm::vec2 v2 = glm::vec2(cosA * outerRadius, sinA * outerRadius);
+        glm::vec2 v3 = glm::vec2(cosB * innerRadius, sinB * innerRadius);
+        glm::vec2 v4 = glm::vec2(cosB * outerRadius, sinB * outerRadius);
+
+        vertices.insert(vertices.end(), {v1.x, v1.y, 0.0f, v3.x, v3.y, 0.0f,
+                                         v2.x, v2.y, 0.0f, v4.x, v4.y, 0.0f});
+
+        // Define indices for two triangles per wall section
+        indices.insert(indices.end(),
+                       {vertexOffset, vertexOffset + 1, vertexOffset + 2,
+                        vertexOffset + 1, vertexOffset + 3, vertexOffset + 2});
+        vertexOffset += 4;
       }
+    }
+
+    // Update buffers
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float),
+                 vertices.data(), GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+                 indices.data(), GL_DYNAMIC_DRAW);
+  }
+
+  void addWallRow(const std::vector<int> &newRow) {
+    std::vector<Wall> newWallRow;
+    for (int i = 0; i < WALL_SEGMENTS; ++i) {
+      if (newRow[i] == 1) {
+        wallMatrix[m_currentWallIndex][i] = Wall{RADIUS, true};
+      } else {
+        wallMatrix[m_currentWallIndex][i] = Wall{RADIUS, false};
+      }
+      m_currentWallIndex++;
+      m_currentWallIndex %= NUM_WALL_ROWS;
     }
   }
 
   void render(Shader &shader, glm::mat4 &projection, glm::mat4 &view) {
     shader.use();
+    shader.setMat4("mvp", projection * view);
+
     glBindVertexArray(VAO);
-
-    for (size_t row = 0; row < wallMatrix.size(); ++row) {
-      for (size_t i = 0; i < WALL_SEGMENTS; ++i) {
-        if (wallMatrix[row][i].visible == 1) { // If wall exists
-          Wall &wall = wallMatrix[row][i];
-
-          glm::mat4 model = glm::mat4(1.0f);
-          model = glm::scale(model, glm::vec3(wall.radius, wall.radius, 1.0f));
-          model = glm::rotate(model, glm::radians(i * 360.0f / m_numSides),
-                              glm::vec3(0.0f, 0.0f, -1.0f));
-
-          //          std::cout << "model: " << model[0][0] << std::endl;
-          shader.setMat4("model", model);
-          shader.setMat4("mvp", projection * view * model);
-          glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-      }
-    }
-
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
   }
 
-  void setNumSides(int sides) {
-    m_numSides = sides;
-    getWallVertices();
-    setupMesh();
-  }
-  void addWallRow(const std::vector<int> &newRow) {
-    std::vector<Wall> newWallRow;
-    for (int i = 0; i < WALL_SEGMENTS; ++i) {
-      if (newRow[i] == 1) {
-        newWallRow.push_back(Wall{RADIUS, true});
-      } else {
-        newWallRow.push_back(Wall{RADIUS, false});
-      }
-    }
-    wallMatrix.push_back(newWallRow);
-  }
-
 private:
-  GLuint VAO, VBO;
-  std::vector<std::vector<Wall>> wallMatrix; // Actual wall data
-  float m_vertices[18];
+  GLuint VAO, VBO, EBO;
+  std::vector<float> vertices;
+  std::vector<unsigned int> indices;
   int m_numSides;
+  Wall wallMatrix[NUM_WALL_ROWS][WALL_SEGMENTS] = {0};
+  int m_currentWallIndex = 0;
 
   void setupMesh() {
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(m_vertices), m_vertices,
-                 GL_STATIC_DRAW);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
     glBindVertexArray(0);
-  }
-
-  void getWallVertices() {
-
-    float angleStep = glm::radians(360.0f / m_numSides);
-
-    float innerRadius = RADIUS;
-    float outerRadius = RADIUS + THICKNESS;
-    // Compute vertex positions
-    float x1_outer = outerRadius * cos(0);
-    float y1_outer = outerRadius * sin(0);
-    float x2_outer = outerRadius * cos(angleStep);
-    float y2_outer = outerRadius * sin(angleStep);
-
-    float x1_inner = innerRadius * cos(0);
-    float y1_inner = innerRadius * sin(0);
-    float x2_inner = innerRadius * cos(angleStep);
-    float y2_inner = innerRadius * sin(angleStep);
-
-    // Allocate memory for vertices (6 vertices * 3 coordinates each)
-    float vertices[18] = {// First triangle
-                          x1_outer, y1_outer, 0.0f, x2_outer, y2_outer, 0.0f,
-                          x1_inner, y1_inner, 0.0f,
-
-                          // Second triangle
-                          x2_outer, y2_outer, 0.0f, x2_inner, y2_inner, 0.0f,
-                          x1_inner, y1_inner, 0.0f};
-
-    for (int i = 0; i < 18; i++) {
-      std::cout << vertices[i] << std::endl;
-      m_vertices[i] = vertices[i];
-    }
   }
 };

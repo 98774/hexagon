@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 #define NUM_PLAYER_VERTICES 3
-#define PLAYER_SCALE 0.10
+#define PLAYER_SCALE 0.06
 #define PLAYER_RADIUS 0.2
 
 class Player {

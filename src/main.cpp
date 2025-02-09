@@ -5,6 +5,7 @@
 #include "player.hpp"
 #include "shader.hpp"
 #include "walls.hpp"
+#include <GL/gl.h>
 #include <sys/types.h>
 #define BEFORE_GLFW
 #include "GLFW/glfw3.h"
@@ -27,6 +28,8 @@ int currentState = PLAYING;
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+const float MIN_UPDATE_TIME = 0.01;
+float elapsedTime = 0.0f;
 
 // Frame rate monitor
 float deltaTime = 0.0f; // Time between current frame and last frame
@@ -51,16 +54,30 @@ int main() {
 
   Shader background_shader(
       "src/shaders/background_vs.glsl",
-      "src/shaders/background_vs.glsl"); // you can name your shader
+      "src/shaders/background_fs.glsl"); // you can name your shader
   Shader player_shader(
       "src/shaders/player_vs.glsl",
       "src/shaders/player_fs.glsl"); // you can name your shader
 
+  // Put background canvas in the back
   glEnable(GL_DEPTH_TEST);
+  float background_vertices[18] = {-1.0f, -1.0f, 0.0,  -1.0f, 1.0f,  0.0f,
+                                   1.0f,  1.0f,  0.0f, -1.0f, -1.0f, 0.0f,
+                                   1.0f,  -1.0f, 0.0f, 1.0f,  1.0f,  0.0f};
+  unsigned int backgroundVAO, backgroundVBO;
+  glGenVertexArrays(1, &backgroundVAO);
+  glGenBuffers(1, &backgroundVBO);
 
-  // This line allows movement off the xz plane
-  cam.Fpv = false;
-  // VertexBuffer playerBuffer(player.getVertices(), player.getNumVertices());
+  glBindVertexArray(backgroundVAO);
+
+  glBindBuffer(GL_ARRAY_BUFFER, backgroundVBO);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+  glEnableVertexAttribArray(0);
+
+  glBindVertexArray(0);
+
+  // END BACKGROUND INIT
+
   // Define perspective
   glm::mat4 projection = glm::mat4(1.0f);
   projection = glm::perspective(
@@ -73,12 +90,14 @@ int main() {
   int sides = 6;
   float angleMod = 0;
   while (!glfwWindowShouldClose(window)) {
-    // input
-    // -----
     processInput(window, deltaTime);
+
+    // Time update
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+
+    // Generate new walls for rendering
     wallCounter += deltaTime;
     if (wallCounter > 0.5) {
       wallCounter = 0;
@@ -101,20 +120,25 @@ int main() {
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // don't forget to use the corresponding shader program first (to set the
-
+    // Add to add rotation
     view = glm::rotate(view, (float)glm::radians(1.05), glm::vec3(0, 0, -1.0));
 
-    player.render(player_shader, projection, view);
+    // Only render when enough time passes
+    if (elapsedTime > MIN_UPDATE_TIME) {
+      player.render(player_shader, projection, view);
+      wallMatrix.render(walls_shader, projection, view);
+
+      // Background logic
+      background_shader.use();
+      background_shader.setInt("numSides", WALL_SEGMENTS);
+      glBindVertexArray(backgroundVAO);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+
+      elapsedTime = 0;
+    }
+    elapsedTime += deltaTime;
 
     wallMatrix.update(deltaTime);
-    wallMatrix.render(walls_shader, projection, view);
-    //    playerBuffer.render(player, projection, view);
-    //    wallMatrix.update();
-    //    wallMatrix.render(walls, projection, view);
-
-    deltaTime = glfwGetTime() - lastFrame;
-    lastFrame = glfwGetTime();
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
     // moved etc.)
@@ -146,11 +170,11 @@ void processInput(GLFWwindow *window, float deltaTime) {
     glfwSetWindowShouldClose(window, 1);
   }
   if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) {
-    float newAngle = player.getAngle() + deltaTime * M_PI * 500;
+    float newAngle = player.getAngle() + deltaTime * 8;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
   if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) {
-    float newAngle = player.getAngle() - deltaTime * M_PI * 500;
+    float newAngle = player.getAngle() - deltaTime * 8;
     player.setAngle(newAngle < 0 ? 2 * M_PI : newAngle);
   }
 }
