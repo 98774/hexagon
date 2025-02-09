@@ -48,6 +48,7 @@ glm::vec3 backgroundColor = glm::vec3(1.0f, 0.5f, 0.31f);
 Player player = Player();
 
 int main() {
+  srand(rand() ^ time(NULL));
   GLFWwindow *window = initializeGLFW();
 
   // build and compile our shader program
@@ -63,6 +64,7 @@ int main() {
 
   // Put background canvas in the back
   glEnable(GL_DEPTH_TEST);
+
   float background_vertices[18] = {-1.0f, -1.0f, 0.0,  -1.0f, 1.0f,  0.0f,
                                    1.0f,  1.0f,  0.0f, -1.0f, -1.0f, 0.0f,
                                    1.0f,  -1.0f, 0.0f, 1.0f,  1.0f,  0.0f};
@@ -73,6 +75,9 @@ int main() {
   glBindVertexArray(backgroundVAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, backgroundVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(background_vertices),
+               background_vertices, GL_STATIC_DRAW);
+
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
@@ -86,10 +91,6 @@ int main() {
   glm::mat4 view = cam.GetViewMatrix();
 
   Walls wallMatrix = Walls();
-  wallMatrix.addWallRow({1, 0, 1, 0, 1, 0});
-  float wallCounter = 0;
-  int sides = 6;
-  float angleMod = 0;
   while (!glfwWindowShouldClose(window)) {
     processInput(window, deltaTime);
 
@@ -97,21 +98,6 @@ int main() {
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
-
-    // Generate new walls for rendering
-    wallCounter += deltaTime;
-    if (wallCounter > 0.5) {
-      wallCounter = 0;
-
-      glm::uint8 vals = rand() % 64;
-      wallMatrix.addWallRow({
-          (vals & 0x1) ? 1 : 0, (vals & 0x2) ? 1 : 0, (vals & 0x4) ? 1 : 0,
-          (vals & 0x8) ? 1 : 0, (vals & 0x10) ? 1 : 0,
-          (vals & 0x20) ? 1 : 0 // Fixed incorrect mask from 0x2 to 0x20
-      });
-      //      sides = rand() % 6 + 3;
-      //      wallMatrix.setNumSides(sides);
-    }
 
     // render
     // ------
@@ -124,15 +110,16 @@ int main() {
 
     // Only render when enough time passes
     if (elapsedTime > MIN_UPDATE_TIME) {
-      player.render(player_shader, projection, view);
-      wallMatrix.render(walls_shader, projection, view);
-
       // Background logic
       background_shader.use();
       background_shader.setInt("numSides", WALL_SEGMENTS);
       background_shader.setFloat("time", glfwGetTime());
+      background_shader.setMat4("view", projection * view);
       glBindVertexArray(backgroundVAO);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
+      //      glDrawArrays(GL_TRIANGLES, 0, 6);
+
+      player.render(player_shader, projection, view);
+      wallMatrix.render(walls_shader, projection, view);
 
       elapsedTime = 0;
     }

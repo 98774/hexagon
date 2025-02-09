@@ -9,7 +9,7 @@ out vec3 FragPos;
   
 void main()
 {
-    gl_Position = view* vec4(aPos, 1.0);
-    FragPos = vec3(view * vec4(aPos, 1.0));
+    gl_Position = vec4(aPos.xy, 0, 1.0);
+    FragPos = aPos; //vec3(view * vec4(aPos, 1.0));
  //   Normal = mat3(transpose(inverse(model))) * aNormal;  
 }  
