@@ -41,6 +41,8 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
+glm::mat4 projection = glm::mat4(1.0f);
+
 // Initialize colors
 glm::vec3 backgroundColor = glm::vec3(1.0f, 0.5f, 0.31f);
 Player player = Player();
@@ -79,7 +81,6 @@ int main() {
   // END BACKGROUND INIT
 
   // Define perspective
-  glm::mat4 projection = glm::mat4(1.0f);
   projection = glm::perspective(
       glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
   glm::mat4 view = cam.GetViewMatrix();
@@ -114,9 +115,7 @@ int main() {
 
     // render
     // ------
-    glClearColor(0.1 + glm::sin(glfwGetTime() * M_PI) / 4,
-                 0.1 + glm::sin(glfwGetTime() * M_PI) / 4,
-                 0.1 + glm::sin(glfwGetTime() * M_PI) / 4, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -131,6 +130,7 @@ int main() {
       // Background logic
       background_shader.use();
       background_shader.setInt("numSides", WALL_SEGMENTS);
+      background_shader.setFloat("time", glfwGetTime());
       glBindVertexArray(backgroundVAO);
       glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -186,6 +186,8 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   // make sure the viewport matches the new window dimensions; note that width
   // and height will be significantly larger than specified on retina displays.
   glViewport(0, 0, width, height);
+  projection = glm::perspective(glm::radians(45.0f),
+                                (float)width / (float)height, 0.1f, 100.0f);
 }
 
 // glfw: whenever the mouse moves, this callback is called
