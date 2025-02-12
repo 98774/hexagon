@@ -35,19 +35,22 @@ public:
   }
 
   void update(float deltaTime) {
+    // Add a new obstacle every OBSTACLE_INTERVAL seconds
     if (obstacle_timer > 0.0f) {
       obstacle_timer -= deltaTime;
     } else {
+      // Onlye add a new obstacle if the queue is empty
       if (m_obstacleQueue.empty()) {
         Obstacle newOb = getRandomObstacle();
         addObstacleToQueue(newOb);
       }
+      // Take the first row of the obstacle to the walls
       addWallRow(m_obstacleQueue.front());
       m_obstacleQueue.pop();
       obstacle_timer = OBSTACLE_INTERVAL;
     }
 
-    // Wait appropriate time before next obstacle
+    // Regenerate the walls vertices
     vertices.clear();
     indices.clear();
 
@@ -55,17 +58,15 @@ public:
     for (size_t row = 0; row < NUM_WALL_ROWS; ++row) {
       for (size_t i = 0; i < m_numSides; ++i) {
         Wall &wall = wallMatrix[row][i];
-        // std::cout << wall.visible << std::endl;
+        wall.radius -= SPEED * deltaTime;
+
+        if (wall.radius < MIN_RADIUS) {
+          wall.visible = false;
+          wall.radius = RADIUS;
+        }
+
         if (!wall.visible)
           continue;
-
-        // Shrink walls inward
-        if (wall.radius > MIN_RADIUS) {
-          wall.radius -= SPEED * deltaTime;
-        }
-        if (wall.radius < MIN_RADIUS)
-          wall.visible = false;
-
         // Define base vertical line and rotate
         float innerRadius = wall.radius + THICKNESS;
         float outerRadius = wall.radius;
@@ -80,6 +81,7 @@ public:
         glm::vec2 v3 = glm::vec2(cosB * innerRadius, sinB * innerRadius);
         glm::vec2 v4 = glm::vec2(cosB * outerRadius, sinB * outerRadius);
 
+        // TODO: Use a fixed length array to avoid reallocation
         vertices.insert(vertices.end(), {v1.x, v1.y, 0.0f, v3.x, v3.y, 0.0f,
                                          v2.x, v2.y, 0.0f, v4.x, v4.y, 0.0f});
 
@@ -99,6 +101,36 @@ public:
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                  indices.data(), GL_DYNAMIC_DRAW);
+  }
+  bool checkPlayerCollision(float playerAngle, float playerRadius) {
+    // Check if the player is within the bounds of the walls
+    float minRadius = RADIUS;
+    int minInd = -1;
+    // Get the minimum radius of the walls
+    for (int i = 0; i < NUM_WALL_ROWS; ++i) {
+      Wall &wall = wallMatrix[i][0];
+      minRadius = (wall.radius <= minRadius ? wall.radius : minRadius);
+      minInd = (minRadius == wall.radius ? i : minInd);
+    }
+    // No walls close enough
+    std::cout << "Min Ind: " << minInd << " Min radius: " << minRadius << "\n";
+    if (minRadius > playerRadius) {
+      return false;
+    }
+
+    // Check ring of walls for collision
+    float angle = glm::radians(360.0f / m_numSides);
+    for (int i = 0; i < m_numSides; ++i) {
+      float startAngle = i * angle;
+      float endAngle = (i + 1) * angle;
+      if (wallMatrix[minInd][i].visible == true && playerAngle >= startAngle &&
+          playerAngle < endAngle) {
+        std::cout << "Collision detected with " << minInd << " wall " << i
+                  << "\n";
+        return true;
+      }
+    }
+    return false;
   }
 
   void addWallRow(uint8_t newRow) {

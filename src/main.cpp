@@ -7,6 +7,7 @@
 #include "walls.hpp"
 #include <GL/gl.h>
 #include <sys/types.h>
+#include <unistd.h>
 #define BEFORE_GLFW
 #include "GLFW/glfw3.h"
 #include <cstdlib>
@@ -91,7 +92,12 @@ int main() {
   glm::mat4 view = cam.GetViewMatrix();
 
   Walls wallMatrix = Walls();
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  int collisionCount = 0;
   while (!glfwWindowShouldClose(window)) {
+    if (collisionCount) {
+      continue;
+    }
     processInput(window, deltaTime);
 
     // Time update
@@ -99,17 +105,29 @@ int main() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    // render
-    // ------
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Collision check
+    if (wallMatrix.checkPlayerCollision(player.getAngle(),
+                                        player.getRadius())) {
+      std::cout << "Collision detected" << std::endl;
+      glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+      collisionCount = 10;
+    }
 
     // Add to add rotation
-    view = glm::rotate(view, (float)glm::radians(1.05), glm::vec3(0, 0, -1.0));
+    view = glm::rotate(
+        view, (float)glm::radians(1.05),
+        glm::vec3(0.0f, -glm::abs(glm::sin(glfwGetTime()) * 0.3), -1.0));
 
     // Only render when enough time passes
     if (elapsedTime > MIN_UPDATE_TIME) {
+      // render
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+      if (collisionCount) {
+        collisionCount--;
+      } else {
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+      }
       // Background logic
       background_shader.use();
       background_shader.setInt("numSides", WALL_SEGMENTS);
