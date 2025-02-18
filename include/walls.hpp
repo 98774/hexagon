@@ -1,5 +1,8 @@
 
+#include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
 #include "shader.hpp"
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <queue>
@@ -67,6 +70,7 @@ public:
 
         if (!wall.visible)
           continue;
+
         // Define base vertical line and rotate
         float innerRadius = wall.radius + THICKNESS;
         float outerRadius = wall.radius;
@@ -88,7 +92,7 @@ public:
         // Define indices for two triangles per wall section
         indices.insert(indices.end(),
                        {vertexOffset, vertexOffset + 1, vertexOffset + 2,
-                        vertexOffset + 1, vertexOffset + 3, vertexOffset + 2});
+                        vertexOffset + 1, vertexOffset + 2, vertexOffset + 3});
         vertexOffset += 4;
       }
     }
@@ -102,34 +106,25 @@ public:
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
                  indices.data(), GL_DYNAMIC_DRAW);
   }
-  bool checkPlayerCollision(float playerAngle, float playerRadius) {
-    // Check if the player is within the bounds of the walls
-    float minRadius = RADIUS;
-    int minInd = -1;
-    // Get the minimum radius of the walls
-    for (int i = 0; i < NUM_WALL_ROWS; ++i) {
-      Wall &wall = wallMatrix[i][0];
-      minRadius = (wall.radius <= minRadius ? wall.radius : minRadius);
-      minInd = (minRadius == wall.radius ? i : minInd);
-    }
-    // No walls close enough
-    std::cout << "Min Ind: " << minInd << " Min radius: " << minRadius << "\n";
-    if (minRadius > playerRadius) {
-      return false;
+  bool checkPlayerCollision(glm::vec2 playerPos) {
+    int numTriangles = indices.size() / 3; // 3 indices per triangle
+    int inds[3];
+    // Iterate through quads
+    for (int i = 0; i < numTriangles; i++) {
+      inds[0] = indices[i * 3 + 0];
+      inds[1] = indices[i * 3 + 1];
+      inds[2] = indices[i * 3 + 2];
+      //      std::cout << "Triangle inds: " << inds[0] << inds[1] << inds[2]
+      //               << std::endl;
+      // check first triangle in quad
+      if (PointInTriangle(
+              glm::vec2(vertices[inds[0] * 3], vertices[inds[0] * 3 + 1]),
+              glm::vec2(vertices[inds[1] * 3], vertices[inds[1] * 3 + 1]),
+              glm::vec2(vertices[inds[2] * 3], vertices[inds[2] * 3 + 1]),
+              playerPos))
+        return true;
     }
 
-    // Check ring of walls for collision
-    float angle = glm::radians(360.0f / m_numSides);
-    for (int i = 0; i < m_numSides; ++i) {
-      float startAngle = i * angle;
-      float endAngle = (i + 1) * angle;
-      if (wallMatrix[minInd][i].visible == true && playerAngle >= startAngle &&
-          playerAngle < endAngle) {
-        std::cout << "Collision detected with " << minInd << " wall " << i
-                  << "\n";
-        return true;
-      }
-    }
     return false;
   }
 
@@ -141,7 +136,7 @@ public:
       m_currentWallIndex %= NUM_WALL_ROWS;
     }
   }
-
+  //
   void render(Shader &shader, glm::mat4 &projection, glm::mat4 &view) {
     shader.use();
     shader.setMat4("mvp", projection * view);
@@ -156,6 +151,31 @@ public:
   Obstacle getRandomObstacle() {
     int index = random() % MAX_OBSTACLES;
     return m_obstacles[index];
+  }
+  // Check triangles
+  bool PointInTriangle(glm::vec2 C, glm::vec2 B, glm::vec2 A, glm::vec2 P) {
+    // Compute vectors
+    glm::vec2 v0 = C - A;
+    glm::vec2 v1 = B - A;
+    glm::vec2 v2 = P - A;
+
+    // Compute dot products
+    float dot00 = glm::dot(v0, v0);
+    float dot01 = glm::dot(v0, v1);
+    float dot02 = glm::dot(v0, v2);
+    float dot11 = glm::dot(v1, v1);
+    float dot12 = glm::dot(v1, v2);
+
+    // Compute barycentric coordinates
+    float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    std::cout << "C: (" << C.x << ", " << C.y << ")  " << "B: (" << B.x << ", "
+              << B.y << ")  " << "A: (" << A.x << ", " << A.y << ")  " << "P: ("
+              << P.x << ", " << P.y << ")" << std::endl;
+
+    // Check if point is in triangle
+    return (u >= 0) && (v >= 0) && (u + v < 1);
   }
 
 private:
@@ -208,7 +228,7 @@ private:
     m_obstacles[13] = {
         6, {0b100001, 0b010010, 0b100001, 0b010010, 0b010010, 0b010010}};
     m_obstacles[14] = {
-        6, {0b100001, 0b010010, 0b100001, 0b010010, 0b010010, 0b010010}};
+        6, {0b010000, 0b010000, 0b010000, 0b010000, 0b010000, 0b010000}};
   };
   void addObstacleToQueue(Obstacle &obstacle) {
     for (int i = 0; i < obstacle.layers; ++i) {

@@ -1,7 +1,6 @@
 
 #include "camera.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_transform.hpp"
 #include "player.hpp"
 #include "shader.hpp"
 #include "walls.hpp"
@@ -93,11 +92,12 @@ int main() {
 
   Walls wallMatrix = Walls();
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-  int collisionCount = 0;
+  bool collision = false;
+  std::cout << wallMatrix.PointInTriangle(glm::vec2(-1, 1), glm::vec2(-0.5, 1),
+                                          glm::vec2(-0.5, 0.5),
+                                          glm::vec2(-0.6, 0.76))
+            << std::endl;
   while (!glfwWindowShouldClose(window)) {
-    if (collisionCount) {
-      continue;
-    }
     processInput(window, deltaTime);
 
     // Time update
@@ -106,28 +106,21 @@ int main() {
     lastFrame = currentFrame;
 
     // Collision check
-    if (wallMatrix.checkPlayerCollision(player.getAngle(),
-                                        player.getRadius())) {
-      std::cout << "Collision detected" << std::endl;
-      glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
-      collisionCount = 10;
+    if (wallMatrix.checkPlayerCollision(player.getTipPoint())) {
+      collision = true;
     }
 
     // Add to add rotation
     view = glm::rotate(
-        view, (float)glm::radians(1.05),
-        glm::vec3(0.0f, -glm::abs(glm::sin(glfwGetTime()) * 0.3), -1.0));
+        view, (float)glm::radians(1.05 + collision * 0.5),
+        glm::vec3(0.0f, !collision * -glm::abs(glm::sin(glfwGetTime()) * 0.3),
+                  -1.0));
 
     // Only render when enough time passes
     if (elapsedTime > MIN_UPDATE_TIME) {
       // render
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      if (collisionCount) {
-        collisionCount--;
-      } else {
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-      }
       // Background logic
       background_shader.use();
       background_shader.setInt("numSides", WALL_SEGMENTS);
@@ -143,7 +136,9 @@ int main() {
     }
     elapsedTime += deltaTime;
 
-    wallMatrix.update(deltaTime);
+    if (!collision) {
+      wallMatrix.update(deltaTime);
+    }
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
     // moved etc.)
@@ -163,11 +158,11 @@ int main() {
 // create a rotating triangle that spins around the hexagon with the arror/ ad
 // keys walls should come into the screen that align with the hexagon really
 // need a queue of obstacles defined by a set of vertices that can slide into
-// fram need collision detection of obstacles with the cursor Other features and
-// bugs
+// fram need collision detection of obstacles with the cursor Other features
+// and bugs
 
-// process all input: query GLFW whether relevant keys are pressed/released this
-// frame and react accordingly
+// process all input: query GLFW whether relevant keys are pressed/released
+// this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window, float deltaTime) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) ||
@@ -189,7 +184,8 @@ void processInput(GLFWwindow *window, float deltaTime) {
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
   // make sure the viewport matches the new window dimensions; note that width
-  // and height will be significantly larger than specified on retina displays.
+  // and height will be significantly larger than specified on retina
+  // displays.
   glViewport(0, 0, width, height);
   projection = glm::perspective(glm::radians(45.0f),
                                 (float)width / (float)height, 0.1f, 100.0f);

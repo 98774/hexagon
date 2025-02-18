@@ -68,6 +68,11 @@ public:
     model = glm::scale(model, glm::vec3(PLAYER_SCALE, PLAYER_SCALE, 1.0f));
     return model;
   }
+  glm::vec2 getTipPoint() {
+    float x = glm::sin(m_angle) * m_radius;
+    float y = glm::cos(m_angle) * m_radius;
+    return glm::vec2(x, y);
+  }
 
 private:
   float m_radius;
