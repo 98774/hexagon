@@ -93,10 +93,7 @@ int main() {
   Walls wallMatrix = Walls();
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   bool collision = false;
-  std::cout << wallMatrix.PointInTriangle(glm::vec2(-1, 1), glm::vec2(-0.5, 1),
-                                          glm::vec2(-0.5, 0.5),
-                                          glm::vec2(-0.6, 0.76))
-            << std::endl;
+
   while (!glfwWindowShouldClose(window)) {
     processInput(window, deltaTime);
 
@@ -105,14 +102,9 @@ int main() {
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    // Collision check
-    if (wallMatrix.checkPlayerCollision(player.getTipPoint())) {
-      collision = true;
-    }
-
     // Add to add rotation
     view = glm::rotate(
-        view, (float)glm::radians(1.05 + collision * 0.5),
+        view, (float)glm::radians(1.55 + collision * 0.5),
         glm::vec3(0.0f, !collision * -glm::abs(glm::sin(glfwGetTime()) * 0.3),
                   -1.0));
 
@@ -138,6 +130,11 @@ int main() {
 
     if (!collision) {
       wallMatrix.update(deltaTime);
+    }
+
+    // Collision check
+    if (wallMatrix.checkPlayerCollision(player.getTipPoint())) {
+      collision = true;
     }
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse
@@ -170,11 +167,11 @@ void processInput(GLFWwindow *window, float deltaTime) {
     glfwSetWindowShouldClose(window, 1);
   }
   if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) {
-    float newAngle = player.getAngle() + deltaTime * 8;
+    float newAngle = player.getAngle() + deltaTime * PLAYER_SPEED_MODIFIER;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
   }
   if (glfwGetKey(window, GLFW_KEY_A) || glfwGetKey(window, GLFW_KEY_LEFT)) {
-    float newAngle = player.getAngle() - deltaTime * 8;
+    float newAngle = player.getAngle() - deltaTime * PLAYER_SPEED_MODIFIER;
     player.setAngle(newAngle < 0 ? 2 * M_PI : newAngle);
   }
 }

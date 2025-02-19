@@ -30,6 +30,7 @@ set( HEXAGON-SRC
         src/glad.c
         src/main.cpp
         src/hexagon.cpp
+        src/walls.cpp
         )
 
 add_executable( hexagon WIN32 ${HEXAGON-SRC} ${GLAD_GL} )

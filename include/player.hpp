@@ -7,6 +7,7 @@
 #define NUM_PLAYER_VERTICES 3
 #define PLAYER_SCALE 0.06
 #define PLAYER_RADIUS 0.2
+#define PLAYER_SPEED_MODIFIER 10
 
 class Player {
 public:
