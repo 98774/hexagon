@@ -28,8 +28,10 @@ int currentState = PLAYING;
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-const float MIN_UPDATE_TIME = 0.01;
+const float MIN_UPDATE_TIME = 0.005;
 float elapsedTime = 0.0f;
+bool resetWalls = false;
+bool collision = false;
 
 // Frame rate monitor
 float deltaTime = 0.0f; // Time between current frame and last frame
@@ -90,12 +92,16 @@ int main() {
       glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
   glm::mat4 view = cam.GetViewMatrix();
 
-  Walls wallMatrix = Walls();
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-  bool collision = false;
+  Walls wallMatrix = Walls();
 
   while (!glfwWindowShouldClose(window)) {
     processInput(window, deltaTime);
+    if (resetWalls) {
+      wallMatrix = Walls();
+      resetWalls = false;
+      collision = false;
+    }
 
     // Time update
     float currentFrame = glfwGetTime();
@@ -104,8 +110,8 @@ int main() {
 
     // Add to add rotation
     view = glm::rotate(
-        view, (float)glm::radians(1.55 + collision * 0.5),
-        glm::vec3(0.0f, !collision * -glm::abs(glm::sin(glfwGetTime()) * 0.3),
+        view, (float)glm::radians(1.5 + collision * 0.2),
+        glm::vec3(0.0f, !collision * -glm::abs(glm::sin(glfwGetTime()) * 0.2),
                   -1.0));
 
     // Only render when enough time passes
@@ -166,6 +172,13 @@ void processInput(GLFWwindow *window, float deltaTime) {
       glfwGetKey(window, GLFW_KEY_CAPS_LOCK)) {
     glfwSetWindowShouldClose(window, 1);
   }
+  if (glfwGetKey(window, GLFW_KEY_R)) {
+    resetWalls = true;
+  }
+  if (collision) {
+    return;
+  }
+
   if (glfwGetKey(window, GLFW_KEY_D) || glfwGetKey(window, GLFW_KEY_RIGHT)) {
     float newAngle = player.getAngle() + deltaTime * PLAYER_SPEED_MODIFIER;
     player.setAngle(newAngle > 2 * M_PI ? 0 : newAngle);
