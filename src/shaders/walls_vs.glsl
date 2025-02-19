@@ -13,6 +13,6 @@ uniform mat4 model;
 void main()
 {
     gl_Position = mvp * vec4(aPos, 1.0);
-    pos = (model * vec4(aPos, 1.0)).xyz;
+    pos = vec4(aPos, 1.0).xyz;
     //  FragColor = mix(texture(texture1, TexCoord), texture(texture2, vec2(TexCoord.x, TexCoord.y)), mixValue);
 }

@@ -11,7 +11,7 @@
 #define NUM_WALL_ROWS 20
 #define WALL_SEGMENTS 6  // Number of walls per loop (hexagon)
 #define SPEED 1.0f       // Rate at which walls descend
-#define THICKNESS 0.1f   // Scaling factor for the trapezoid height
+#define THICKNESS 0.2f   // Scaling factor for the trapezoid height
 #define RADIUS 3.0f      // Initial radius of the walls
 #define MIN_RADIUS 0.05f // The point at which the walls disappear
 #define OBSTACLE_INTERVAL 0.5f
@@ -27,6 +27,7 @@ struct Obstacle {
 struct Wall {
   float radius; // Distance from the center
   bool visible;
+  uint8_t pattern;
 };
 
 class Walls {
@@ -38,21 +39,8 @@ public:
   }
 
   void update(float deltaTime) {
-    // Add a new obstacle every OBSTACLE_INTERVAL seconds
-    if (obstacle_timer > 0.0f) {
-      obstacle_timer -= deltaTime;
-    } else {
-      // Onlye add a new obstacle if the queue is empty
-      if (m_obstacleQueue.empty()) {
-        Obstacle newOb = getRandomObstacle();
-        addObstacleToQueue(newOb);
-      }
-      // Take the first row of the obstacle to the walls
-      addWallRow(m_obstacleQueue.front());
-      m_obstacleQueue.pop();
-      obstacle_timer = OBSTACLE_INTERVAL;
-    }
-
+    UpdateObstacles(deltaTime);
+    //
     // Regenerate the walls vertices
     vertices.clear();
     indices.clear();
@@ -71,23 +59,15 @@ public:
         if (!wall.visible)
           continue;
 
-        // Define base vertical line and rotate
-        float innerRadius = wall.radius + THICKNESS;
-        float outerRadius = wall.radius;
         float angle = glm::radians(i * 360.0f / m_numSides);
-        float deltaAngle = glm::radians(360.0f / m_numSides);
-        float cosA = glm::cos(angle), sinA = glm::sin(angle);
-        float cosB = glm::cos(angle + deltaAngle),
-              sinB = glm::sin(angle + deltaAngle);
-
-        glm::vec2 v1 = glm::vec2(cosA * innerRadius, sinA * innerRadius);
-        glm::vec2 v2 = glm::vec2(cosA * outerRadius, sinA * outerRadius);
-        glm::vec2 v3 = glm::vec2(cosB * innerRadius, sinB * innerRadius);
-        glm::vec2 v4 = glm::vec2(cosB * outerRadius, sinB * outerRadius);
-
+        float tempVertices[8];
+        generateWallVertices(wall, angle, tempVertices);
         // TODO: Use a fixed length array to avoid reallocation
-        vertices.insert(vertices.end(), {v1.x, v1.y, 0.0f, v3.x, v3.y, 0.0f,
-                                         v2.x, v2.y, 0.0f, v4.x, v4.y, 0.0f});
+        vertices.insert(vertices.end(),
+                        {tempVertices[0], tempVertices[1], 0.0f,
+                         tempVertices[2], tempVertices[3], 0.0f,
+                         tempVertices[4], tempVertices[5], 0.0f,
+                         tempVertices[6], tempVertices[7], 0.0f});
 
         // Define indices for two triangles per wall section
         indices.insert(indices.end(),
@@ -170,9 +150,11 @@ public:
     float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
     float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
     float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-    std::cout << "C: (" << C.x << ", " << C.y << ")  " << "B: (" << B.x << ", "
-              << B.y << ")  " << "A: (" << A.x << ", " << A.y << ")  " << "P: ("
-              << P.x << ", " << P.y << ")" << std::endl;
+    //    std::cout << "C: (" << C.x << ", " << C.y << ")  " << "B: (" << B.x <<
+    //    ", "
+    //             << B.y << ")  " << "A: (" << A.x << ", " << A.y << ")  " <<
+    //             "P: ("
+    //            << P.x << ", " << P.y << ")" << std::endl;
 
     // Check if point is in triangle
     return (u >= 0) && (v >= 0) && (u + v < 1);
@@ -234,5 +216,43 @@ private:
     for (int i = 0; i < obstacle.layers; ++i) {
       m_obstacleQueue.push(obstacle.pattern[i]);
     }
+  }
+  void UpdateObstacles(float deltaTime) {
+    // Add a new obstacle every OBSTACLE_INTERVAL seconds
+    if (obstacle_timer > 0.0f) {
+      obstacle_timer -= deltaTime;
+    } else {
+      // Onlye add a new obstacle if the queue is empty
+      if (m_obstacleQueue.empty()) {
+        Obstacle newOb = getRandomObstacle();
+        addObstacleToQueue(newOb);
+      }
+      // Take the first row of the obstacle to the walls
+      addWallRow(m_obstacleQueue.front());
+      m_obstacleQueue.pop();
+      obstacle_timer = OBSTACLE_INTERVAL;
+    }
+  }
+  void generateWallVertices(Wall &wall, float angle, float *vertices) {
+    // Define base vertical line and rotate
+    float innerRadius = wall.radius + THICKNESS;
+    float outerRadius = wall.radius;
+    float deltaAngle = glm::radians(360.0f / m_numSides);
+    float cosA = glm::cos(angle), sinA = glm::sin(angle);
+    float cosB = glm::cos(angle + deltaAngle),
+          sinB = glm::sin(angle + deltaAngle);
+
+    glm::vec2 v1 = glm::vec2(cosA * innerRadius, sinA * innerRadius);
+    glm::vec2 v2 = glm::vec2(cosA * outerRadius, sinA * outerRadius);
+    glm::vec2 v3 = glm::vec2(cosB * innerRadius, sinB * innerRadius);
+    glm::vec2 v4 = glm::vec2(cosB * outerRadius, sinB * outerRadius);
+    vertices[0] = v1.x;
+    vertices[1] = v1.y;
+    vertices[2] = v2.x;
+    vertices[3] = v2.y;
+    vertices[4] = v3.x;
+    vertices[5] = v3.y;
+    vertices[6] = v4.x;
+    vertices[7] = v4.y;
   }
 };
