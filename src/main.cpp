@@ -143,8 +143,8 @@ int main() {
       collision = true;
     }
 
-    // glfw: swap buffers and poll IO events (keys pressed/released, mouse
-    // moved etc.)
+    // glfw: swap buffers and poll IO events (keys
+    // pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -155,14 +155,6 @@ int main() {
   glfwTerminate();
   return 0;
 }
-
-// Overall plan:
-// hexagon in the center of the screen
-// create a rotating triangle that spins around the hexagon with the arror/ ad
-// keys walls should come into the screen that align with the hexagon really
-// need a queue of obstacles defined by a set of vertices that can slide into
-// fram need collision detection of obstacles with the cursor Other features
-// and bugs
 
 // process all input: query GLFW whether relevant keys are pressed/released
 // this frame and react accordingly

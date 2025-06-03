@@ -12,7 +12,7 @@
 #define WALL_SEGMENTS 6
 #define SPEED 0.3f
 #define THICKNESS 0.15f
-#define RADIUS 3.0f
+#define RADIUS 4.0f
 #define MIN_RADIUS 0.05f
 #define OBSTACLE_INTERVAL 0.42f
 #define MAX_PATTERN_LENGTH 10

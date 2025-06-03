@@ -1,40 +1,40 @@
-Support our work through [GitHub Sponsors](https://github.com/sponsors/dougbinks) or [Patreon](https://www.patreon.com/enkisoftware)
+# Super Hexagon Clone
 
-[<img src="https://img.shields.io/static/v1?logo=github&label=Github&message=Sponsor&color=#ea4aaa" width="200"/>](https://github.com/sponsors/dougbinks)    [<img src="https://c5.patreon.com/external/logo/become_a_patron_button@2x.png" alt="Become a Patron" width="150"/>](https://www.patreon.com/enkisoftware)
+This repository contains a clone of the popular minimalist action game, Super Hexagon. The game challenges players with fast-paced, geometric dodging, testing reflexes and spatial awareness.
 
+## About the Game
 
-# GLFW CMake starter
+Super Hexagon Clone aims to replicate the core gameplay experience of the original. Players control a small triangle at the center of the screen, rotating to navigate through an ever-closing series of walls. The objective is to survive as long as possible as the game's speed and complexity increase.
 
-This starter project shows how to use CMake to create a project with GLFW. The code is multi-platform and runs on Windows, Linux and MacOS.
+## Features
 
-GLFW homepage: [glfw.org](https://www.glfw.org/)  
-GLFW on GitHub: [github.com/glfw/glfw](https://www.github.com/glfw/glfw)
+Fast-paced, minimalist gameplay: Experience the intense, reflex-driven action.
+Geometric visuals: Navigate through an abstract world of rotating shapes.
+Increasing difficulty: The challenge escalates as you progress, with faster speeds and more complex patterns.
 
-## Getting the code
+## How to Play
 
-The easiest way to get hold of the starter code is to run the following command using a shell you can run git from:
+Start the game: Run the build script ./gen
 
-```
-git clone --recursive https://github.com/juliettef/GLFW-CMake-starter
-```
+Control your triangle: You'll use left and right arrow keys (or 'A' and 'D') to rotate your triangle clockwise or counter-clockwise.
 
-If you are on Windows you can download git from [git-scm.com/download/win](https://git-scm.com/download/win) and use the right click menu in Windows File Explorer to "Git Bash here" and then run git commands.
+Dodge the walls: Rotate to fit through the gaps in the incoming walls.
 
-This will create the directory _GLFW-CMake-starter_ and get the latest source code, using the ```--recursive``` option to download the GLFW code which is included in the repository as a submodule. If you want to run further git commands from the command line you'll need to cd into the directory:
+Survive: The longer you last, the higher your score!
 
-```
-cd GLFW-CMake-starter
-```
+## Installation and Setup
 
-Alternatively you can use a git GUI program such as [Fork](https://git-fork.com/) to get the code. Most of these will automatically download the git submodules.
+Clone the repository:
+git clone <https://github.com/98774/hexagon.git>
 
-If you download the code from GitHub via the "Download ZIP" approach, you'll also need to download GLFW into the _glfw_ folder. The correct version can be found by clicking on the _glfw_ folder you see on the [front page of the _GLFW-CMake-starter_ GitHub repository](https://github.com/juliettef/GLFW-CMake-starter).
+Navigate to the project directory:
+cd hexagon
 
-## Using CMake to create the project
+Build and Run the game:
+This project can be built and run using the provided ./gen script.
+From the project root directory, execute:
+./gen
 
-From a command prompt in the `GLFW-CMake-starter` directory:
-1. `mkdir build`
-1. `cd build`
-1. `cmake ..` (for MinGW the build system generator needs to be specified using the -G option: `cmake .. -G "MinGW Makefiles"`)
-1. Either run `make all` or for Visual Studio open `GLFW-CMake-starter.sln` or for MinGW run `mingw32-make`
-
+This script will handle the compilation and execution of the game.
+License
+This project is licensed under the Zlib License. See the LICENSE file in the repository for full details.

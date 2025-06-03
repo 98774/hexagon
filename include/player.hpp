@@ -82,8 +82,8 @@ private:
 
   // Fix array size (NUM_PLAYER_m_vertices * 3)
   float m_vertices[NUM_PLAYER_VERTICES * 3] = {
-      0.0f,   0.5f,   0.0f, // Top
-      -0.43f, -0.25f, 0.0f, // Bottom-left
-      0.43f,  -0.25f, 0.0f  // Bottom-right
+      0.0f,   0.5f,   0.1f, // Top
+      -0.43f, -0.25f, 0.1f, // Bottom-left
+      0.43f,  -0.25f, 0.1f  // Bottom-right
   };
 };
